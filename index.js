@@ -1,111 +1,100 @@
-let store = {deliveries: [], employers: [], drivers: [], meals: [], customers: []};
-let deliveryId = 0;
-let mealId = 0;
-let employerId = 0;
-let customerId = 0;
+let store = { neighborhoods: [], meals: [], customers: [], deliveries: [] };
 
+const Neighborhood = (() => {
+  let neighborhoodIds = 1;
+  return class {
+    constructor(name) {
+      this.id = neighborhoodIds++;
+      this.name = name;
+      store.neighborhoods.push(this);
+    }
 
-class Delivery{
-  constructor(meal = {}, customer = {}){
-    this.id = ++deliveryId;
-    this.mealId = meal.id;
-    this.customerId = customer.id;
-    store.deliveries.push(this);
-  }
-  meal() {
-    return store.meals.find(meal => {
-      return meal.id === this.mealId;
-    });
-  }
-  customer() {
-    return store.customers.find(customer => {
-      return customer.id === this.customerId;
-    });
-  }
-}
+    customers() {
+      return store.customers.filter(customer => customer.neighborhoodId === this.id);
+    }
 
-class Meal{
-  constructor(title, price){
-    this.id = ++mealId;
-    this.title = title;
-    this.price = price;
-    store.meals.push(this);
-  }
-  static byPrice(){
-    return store.meals.sort((a,b)=>a.price < b.price);
-  }
-  deliveries(){
-    return store.deliveries.filter(delivery=> delivery.meal.id = this.id);
-  }
-  customers() {
-    return this.deliveries().map(delivery => {
-      return delivery.customer();
-    });
-  }
-}
+    meals() {
+      const allMeals = this.customers().map(customer => customer.meals());
+      const merged = [].concat.apply([], allMeals);
+      return [...new Set(merged)];
+    }
 
-class Employer{
-  constructor(name){
-    this.id = ++employerId;
-    this.name = name;
-    store.employers.push(this);
- }
- mealTotals() {
-   let allMeals = this.deliveries().map(delivery => {
-     return delivery.meal();
-   });
-   let summaryObject = {};
-   allMeals.forEach(function(meal) {
-    summaryObject[meal.id] = 0;
-  });
-  allMeals.forEach(function(meal) {
-    summaryObject[meal.id] += 1;
-    });
-  return summaryObject;
- }
- employees() {
-  return store.customers.filter(customer => {
-    return customer.employerId == this.id;
-  });
- }
- deliveries() {
-   let allDeliveries = this.employees().map(employee => {
-    return employee.deliveries();
-  });
-   let merged = [].concat.apply([], allDeliveries);
-  return merged;
- }
- meals() {
-   let allMeals = this.deliveries().map(delivery => {
-    return delivery.meal();
-   });
-   let uniqueMeals = [...new Set(allMeals)];
-   return uniqueMeals;
- }
-}
+    deliveries() {
+      return store.deliveries.filter(delivery => delivery.neighborhoodId === this.id);
+    }
+  };
+})();
 
-class Customer {
-  constructor(name, employer = {} ){
-    this.name = name;
-    this.employerId = employer.id;
-    this.id = ++customerId
-    store.customers.push(this)
-  }
+const Meal = (() => {
+  let mealIds = 1;
+  return class {
+    constructor(title, price = 0) {
+      this.id = mealIds++;
+      this.title = title;
+      this.price = price;
+      store.meals.push(this);
+    }
 
-  totalSpent(){
-    return this.meals().reduce(function(sum, meal) {
-      return sum + meal.price
-    }, 0)
-  }
+    deliveries() {
+      return store.deliveries.filter(delivery => delivery.mealId === this.id);
+    }
 
-  deliveries(){
-    return store.deliveries.filter((delivery)=> {
-      return delivery.customerId == this.id
-    })
-  }
-  meals(){
-    return this.deliveries().map((delivery)=> {
-      return delivery.meal()
-    })
-  }
-}
+    customers() {
+      const allCustomers = this.deliveries().map(delivery => delivery.customer());
+      return [...new Set(allCustomers)];
+    }
+
+    static byPrice() {
+      return store.meals.sort((a, b) => a.price < b.price);
+    }
+  };
+})();
+
+const Customer = (() => {
+  let customerIds = 1;
+  return class {
+    constructor(name, neighborhoodId) {
+      this.id = customerIds++;
+      this.name = name;
+      this.neighborhoodId = neighborhoodId;
+      store.customers.push(this);
+    }
+
+    deliveries() {
+      return store.deliveries.filter(delivery => delivery.customerId === this.id);
+    }
+
+    meals() {
+      return this.deliveries().map(delivery => delivery.meal());
+    }
+
+    totalSpent() {
+      return this.meals().reduce((total, meal) => (total += meal.price), 0);
+    }
+  };
+})();
+
+const Delivery = (() => {
+  let deliveryIds = 1;
+  return class {
+    constructor(mealId, neighborhoodId, customerId) {
+      this.id = deliveryIds++;
+      this.mealId = mealId;
+      this.neighborhoodId = neighborhoodId;
+      this.customerId = customerId;
+      store.deliveries.push(this);
+    }
+
+    meal() {
+      return store.meals.find(meal => meal.id === this.mealId);
+    }
+
+    neighborhood() {
+      return store.neighborhoods.find(neighborhood => neighborhood.id === this.neighborhoodId);
+    }
+
+    customer() {
+      return store.customers.find(customer => customer.id === this.customerId);
+    }
+  };
+})();
